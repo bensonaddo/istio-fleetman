@@ -1,0 +1,35 @@
+---
+kind: VirtualService
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: fleetman-staff-service # Name of virtual service. Could be anything
+  namespace: default # Location where virtual service is deployed. Typically the same namespace as the kubernetes service
+spec:
+  hosts:
+    - fleetman-staff-service.default.svc.cluster.local # DNS name of kubernetes service. Cannot be anything. It has to be the name of the kubernetes service you want virtual service to be applied. if the service lives under another namespace, you would need the fully qualified name.
+  http:
+    - route:
+        - destination:
+            host: fleetman-staff-service.default.svc.cluster.local #Target DNS name. This also defines the service name to send traffic to.
+            subset: safe # This is mapping the rule to a Destination Rule
+          weight: 0 # Percentage of traffic should be routed. Total should be equal to 100%
+        - destination:
+            host: fleetman-staff-service.default.svc.cluster.local #This also defines the service name to send traffic to. This could also send traffic to an entirely differnet service. So we could have 50% of traffic coming to a differnet service and 50% going to above service
+            subset: risky # This is mapping the rule to a Destination Rule
+          weight: 100 # Percentage of traffic should be routed. Total should be equal to 100%
+---
+kind: DestinationRule
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: fleetman-staff-service # This could be anything as its not mapped to any resource. Its just for us to know what it is.
+  namespace: default
+spec:
+  host: fleetman-staff-service.default.svc.cluster.local # This is the name of the kubernetes service
+  trafficPolicy: ~
+  subsets:
+    - labels: # Selector
+        version: safe # This goes to the above service and looks at the pods that exists in that service with the label safe and groups them together
+      name: safe # This is just a name for the subset. That would need to match the name defined in the virtual service
+    - labels: # Selector
+        version: risky # This goes to the above service and looks at the pods that exists in that service with the label safe and groups them together
+      name: risky # This is just a name for the subset. That would need to match the name defined in the virtual service
