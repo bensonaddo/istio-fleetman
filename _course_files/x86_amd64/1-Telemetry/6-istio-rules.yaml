@@ -18,14 +18,22 @@ spec:
             subset: risky # This is mapping the rule to a Destination Rule
           weight: 100 # Percentage of traffic should be routed. Total should be equal to 100%
 ---
-kind: DestinationRule
+kind: DestinationRule # This is typically deployed in place when we want to do load balancing
 apiVersion: networking.istio.io/v1alpha3
 metadata:
   name: fleetman-staff-service # This could be anything as its not mapped to any resource. Its just for us to know what it is.
   namespace: default
 spec:
   host: fleetman-staff-service.default.svc.cluster.local # This is the name of the kubernetes service
-  trafficPolicy: ~
+
+  #https://istio.io/latest/docs/reference/config/networking/destination-rule/#DestinationRule-traffic_policy:~:text=the%20DestinationRule%20level.-,LoadBalancerSettings,-Load%20balancing%20policies
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        # httpCookie:
+        #   name: user
+        #   tls: 0s
+        useSourceIp: true # This would not work because envoy doesn't support it. This is because weithted routing/virtual services defines where traffic is sent first before loadbalancer/destination rules. So if traffic is sent to 10% subset but has no sticky section, it would not get sent back
   subsets:
     - labels: # Selector
         version: safe # This goes to the above service and looks at the pods that exists in that service with the label safe and groups them together
